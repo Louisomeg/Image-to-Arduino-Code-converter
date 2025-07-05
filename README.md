@@ -43,21 +43,6 @@ npm run package-win
 ```
 The Windows executable will be output to `dist/ImageToArduinoSpriteConverter-win32-x64`.
 
-## Deployment (Web)
-
-Choose your favorite hosting:
-1. **GitHub Pages**  
-   - Push your code to GitHub.  
-   - In **Settings → Pages**, select branch `main` (or `master`) and folder `/ (root)`.  
-   - Visit `https://<user>.github.io/<repo>/`.  
-2. **Surge**  
-   ```bash
-   npm install -g surge
-   surge .
-   ```  
-3. **Netlify** / **Vercel**  
-   - Import your repository, accept defaults.  
-   - Automatic deploys with free HTTPS on each push.
 
 ## Usage
 1. Open the app (browser or `npm start`).  
@@ -72,4 +57,4 @@ Choose your favorite hosting:
 PRs welcome! Open issues for bugs or feature requests.
 
 ## License
-MIT © [Your Name]# Sprite-to-Arduino-Code-converter
+MIT © Louis Mensah # Sprite-to-Arduino-Code-converter

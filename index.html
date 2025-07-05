@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Prevent mobile browsers from auto-zooming on input focus -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Image to Arduino Sprite Converter</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <h1>🎨 Image to Arduino Sprite Converter</h1>
+        <p>Convert images to pixel art sprites and generate Arduino/ESP32 compatible code</p>
+    </div>
+
+    <div class="main-container">
+        <!-- Panel 1: Image Upload & Controls -->
+        <div class="panel upload-panel">
+            <h2>📁 Image Upload & Controls</h2>
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-content">
+                    <div class="upload-icon">📷</div>
+                    <p>Drag & drop an image here or <span class="upload-link">browse files</span></p>
+                    <p class="upload-hint">Supports JPG, PNG, GIF, WebP</p>
+                </div>
+                <input type="file" id="imageInput" accept="image/*" hidden>
+            </div>
+
+            <div class="image-preview" id="imagePreview" style="display: none;">
+                <img id="previewImg" alt="Preview">
+                <button class="btn-secondary" id="removeImage">Remove Image</button>
+            </div>
+
+            <div class="controls-section">
+                <h3>Conversion Settings</h3>
+                
+                <div class="control-group">
+                    <label for="spriteSize">Sprite Size:</label>
+                    <select id="spriteSize">
+                        <option value="8">8x8 pixels</option>
+                        <option value="16" selected>16x16 pixels</option>
+                        <option value="32">32x32 pixels</option>
+                        <option value="64">64x64 pixels</option>
+                        <option value="custom">Custom size</option>
+                    </select>
+                </div>
+
+                <div class="control-group" id="customSizeGroup" style="display: none;">
+                    <label>Custom Size:</label>
+                    <div class="size-inputs">
+                        <input type="number" id="customWidth" value="16" min="1" max="128">
+                        <span>×</span>
+                        <input type="number" id="customHeight" value="16" min="1" max="128">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="algorithm">Conversion Algorithm:</label>
+                    <select id="algorithm">
+                        <option value="threshold">Simple Threshold</option>
+                        <option value="floyd-steinberg" selected>Floyd-Steinberg Dithering</option>
+                        <option value="ordered">Ordered Dithering</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="threshold">Threshold: <span id="thresholdValue">128</span></label>
+                    <input type="range" id="threshold" min="0" max="255" value="128">
+                </div>
+
+                <div class="control-group">
+                    <label for="brightness">Brightness: <span id="brightnessValue">0</span></label>
+                    <input type="range" id="brightness" min="-100" max="100" value="0">
+                </div>
+
+                <div class="control-group">
+                    <label for="contrast">Contrast: <span id="contrastValue">0</span></label>
+                    <input type="range" id="contrast" min="-100" max="100" value="0">
+                </div>
+
+                <button class="btn-primary" id="convertBtn" disabled>Convert to Sprite</button>
+            </div>
+        </div>
+
+        <!-- Panel 2: Sprite Editor -->
+        <div class="panel editor-panel">
+            <h2>✏️ Sprite Editor</h2>
+            
+            <div class="editor-toolbar">
+                <div class="tool-group">
+                    <button class="tool-btn active" data-tool="pixel" title="Pixel Tool">🖊️</button>
+                    <button class="tool-btn" data-tool="line" title="Line Tool">📏</button>
+                    <button class="tool-btn" data-tool="rect" title="Rectangle Tool">⬜</button>
+                    <button class="tool-btn" data-tool="fill" title="Fill Tool">🪣</button>
+                    <button class="tool-btn" data-tool="eyedropper" title="Eyedropper">🔍</button>
+                </div>
+                
+                <div class="tool-group">
+                    <button class="btn-secondary" id="undoBtn" title="Undo">↶</button>
+                    <button class="btn-secondary" id="redoBtn" title="Redo">↷</button>
+                    <button class="btn-secondary" id="clearBtn" title="Clear All">🗑️</button>
+                </div>
+
+                <div class="tool-group">
+                    <label for="zoomLevel">Zoom: <span id="zoomValue">4x</span></label>
+                    <input type="range" id="zoomLevel" min="1" max="16" value="4">
+                </div>
+            </div>
+
+            <div class="editor-container">
+                <canvas id="spriteEditor" width="512" height="512"></canvas>
+                <div class="editor-overlay" id="editorOverlay"></div>
+            </div>
+
+            <div class="sprite-info">
+                <span id="spriteSizeInfo">Size: 16×16</span>
+                <span id="pixelCount">Pixels: 0/256</span>
+                <span id="mousePos">Position: -,-</span>
+            </div>
+        </div>
+
+        <!-- Panel 3: Preview & Animation -->
+        <div class="panel preview-panel">
+            <h2>👁️ Preview & Simulation</h2>
+            
+            <div class="preview-container">
+                <h3>Sprite Preview</h3>
+                <div class="sprite-preview">
+                    <canvas id="spritePreview" width="128" height="128"></canvas>
+                </div>
+                
+                <div class="preview-scales">
+                    <div class="scale-preview">
+                        <span>1x</span>
+                        <canvas id="preview1x" width="64" height="64"></canvas>
+                    </div>
+                    <div class="scale-preview">
+                        <span>2x</span>
+                        <canvas id="preview2x" width="64" height="64"></canvas>
+                    </div>
+                    <div class="scale-preview">
+                        <span>4x</span>
+                        <canvas id="preview4x" width="64" height="64"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="oled-simulation">
+                <h3>OLED Display Simulation</h3>
+                <div class="oled-display">
+                    <canvas id="oledDisplay" width="256" height="128"></canvas>
+                </div>
+                <div class="oled-controls">
+                    <div class="control-group">
+                        <label for="oledX">X Position:</label>
+                        <input type="number" id="oledX" value="0" min="0" max="240">
+                    </div>
+                    <div class="control-group">
+                        <label for="oledY">Y Position:</label>
+                        <input type="number" id="oledY" value="0" min="0" max="112">
+                    </div>
+                    <button class="btn-secondary" id="centerSprite">Center Sprite</button>
+                </div>
+            </div>
+
+            <div class="animation-section" style="display: none;">
+                <h3>Animation Preview</h3>
+                <div class="animation-controls">
+                    <button class="btn-secondary" id="addFrame">Add Frame</button>
+                    <button class="btn-secondary" id="playAnimation">▶️ Play</button>
+                    <button class="btn-secondary" id="stopAnimation">⏹️ Stop</button>
+                    <div class="control-group">
+                        <label for="frameRate">Frame Rate (FPS):</label>
+                        <input type="number" id="frameRate" value="5" min="1" max="30">
+                    </div>
+                </div>
+                <div class="frame-list" id="frameList"></div>
+            </div>
+        </div>
+
+        <!-- Panel 4: Code Output -->
+        <div class="panel code-panel">
+            <h2>💻 Generated Arduino Code</h2>
+            
+            <div class="code-controls">
+                <div class="control-group">
+                    <label for="spriteName">Sprite Name:</label>
+                    <input type="text" id="spriteName" value="mySprite" placeholder="Enter sprite name">
+                </div>
+
+                <div class="control-group">
+                    <label for="codeFormat">Output Format:</label>
+                    <select id="codeFormat">
+                        <option value="basic">Basic C Array</option>
+                        <option value="progmem" selected>PROGMEM Optimized</option>
+                        <option value="complete">Complete Arduino Sketch</option>
+                        <option value="library">Custom Library</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="displayType">Display Type:</label>
+                    <select id="displayType">
+                        <option value="ssd1306" selected>SSD1306 OLED</option>
+                        <option value="sh1106">SH1106 OLED</option>
+                        <option value="nokia5110">Nokia 5110 LCD</option>
+                        <option value="custom">Custom Display</option>
+                    </select>
+                </div>
+
+                <button class="btn-primary" id="generateCode" disabled>Generate Code</button>
+            </div>
+
+            <div class="code-output">
+                <div class="code-header">
+                    <span id="codeTitle">Generated Code</span>
+                    <div class="code-actions">
+                        <button class="btn-secondary" id="copyCode" title="Copy to Clipboard">📋 Copy</button>
+                        <button class="btn-secondary" id="downloadCode" title="Download as .ino file">💾 Download</button>
+                    </div>
+                </div>
+                <pre><code id="generatedCode" class="language-cpp">// Generated code will appear here after conversion</code></pre>
+            </div>
+
+            <div class="code-stats">
+                <div class="stat">
+                    <span class="stat-label">Code Size:</span>
+                    <span id="codeSize">0 bytes</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Array Size:</span>
+                    <span id="arraySize">0 bytes</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Memory Usage:</span>
+                    <span id="memoryUsage">0% of Arduino Uno</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Processing image...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>

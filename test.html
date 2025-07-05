@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpriteConverterUtils Tests</title>
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css">
+</head>
+<body>
+    <div id="mocha"></div>
+    <script src="https://unpkg.com/mocha/mocha.js"></script>
+    <script src="https://unpkg.com/chai/chai.js"></script>
+    <script>mocha.setup('bdd');</script>
+    <script src="script.js"></script>
+    <script>
+describe('SpriteConverterUtils', function() {
+    describe('convertThreshold', function() {
+        it('converts grayscale above threshold to 1, below to 0', function() {
+            const width = 2, height = 2;
+            const data = new Uint8ClampedArray([
+                50, 50, 50, 255,
+                200, 200, 200, 255,
+                0, 0, 0, 255,
+                255, 255, 255, 255
+            ]);
+            const imageData = new ImageData(data, width, height);
+            const result = SpriteConverterUtils.convertThreshold(imageData, width, height, 128);
+            chai.expect(result).to.eql([[0,1],[0,1]]);
+        });
+    });
+    describe('convertFloydSteinberg', function() {
+        it('white image yields all ones', function() {
+            const width = 3, height = 3;
+            const data = new Uint8ClampedArray(width * height * 4);
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = data[i+1] = data[i+2] = 255;
+                data[i+3] = 255;
+            }
+            const imageData = new ImageData(data, width, height);
+            const result = SpriteConverterUtils.convertFloydSteinberg(imageData, width, height);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    chai.expect(result[y][x]).to.equal(1);
+                }
+            }
+        });
+        it('black image yields all zeros', function() {
+            const width = 3, height = 3;
+            const data = new Uint8ClampedArray(width * height * 4);
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = data[i+1] = data[i+2] = 0;
+                data[i+3] = 255;
+            }
+            const imageData = new ImageData(data, width, height);
+            const result = SpriteConverterUtils.convertFloydSteinberg(imageData, width, height);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    chai.expect(result[y][x]).to.equal(0);
+                }
+            }
+        });
+    });
+    describe('convertOrderedDithering', function() {
+        it('white image yields all ones', function() {
+            const width = 4, height = 4;
+            const data = new Uint8ClampedArray(width * height * 4);
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = data[i+1] = data[i+2] = 255;
+                data[i+3] = 255;
+            }
+            const imageData = new ImageData(data, width, height);
+            const result = SpriteConverterUtils.convertOrderedDithering(imageData, width, height);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    chai.expect(result[y][x]).to.equal(1);
+                }
+            }
+        });
+        it('black image yields all zeros', function() {
+            const width = 4, height = 4;
+            const data = new Uint8ClampedArray(width * height * 4);
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = data[i+1] = data[i+2] = 0;
+                data[i+3] = 255;
+            }
+            const imageData = new ImageData(data, width, height);
+            const result = SpriteConverterUtils.convertOrderedDithering(imageData, width, height);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    chai.expect(result[y][x]).to.equal(0);
+                }
+            }
+        });
+    });
+    describe('generateBasicArray', function() {
+        it('packs bits correctly for a single-row sprite', function() {
+            const spriteData = [[1,0,1,0,1,0,1,0]];
+            const code = SpriteConverterUtils.generateBasicArray(spriteData, 'testSprite');
+            chai.expect(code).to.include('const unsigned char testSprite[]');
+            chai.expect(code).to.include('0xAA');
+        });
+        it('generates correct bytes for multi-row sprite', function() {
+            const spriteData = [
+                [1,1,1,1,0,0,0,0],
+                [0,0,0,0,1,1,1,1]
+            ];
+            const code = SpriteConverterUtils.generateBasicArray(spriteData, 'foo');
+            chai.expect(code).to.include('0xF0');
+            chai.expect(code).to.include('0x0F');
+        });
+    });
+});
+    mocha.run();
+</script>
+</body>
+</html>
